@@ -1,14 +1,24 @@
 import React, { useRef, useState } from "react";
 import Header from "./Header";
 import { checkValidData } from "../utils/validate";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { auth } from "../utils/fireBase";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
   const [isSignInFrom, setIsSignInForm] = useState(true);
   const [errorMessage, seterrorMessage] = useState("");
+  const navigate = useNavigate();
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+  const dispatch = useDispatch();
+  const nameRef = useRef(null);
 
   const handleButtonClick = () => {
     console.log(emailRef, passwordRef);
@@ -30,7 +40,28 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up
           const user = userCredential.user;
+          updateProfile(user, {
+            displayName: nameRef.current.value,
+            photoURL:
+              "https://unsplash.com/photos/topless-boy-with-blue-eyes-EgtLW0teNyg",
+          })
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+              navigate("/browse");
+            })
+            .catch((error) => {
+              seterrorMessage(error.message);
+            });
           console.log(user);
+          navigate("/browse");
         })
         .catch((error) => {
           const errorCode = error.code;
@@ -39,6 +70,22 @@ const Login = () => {
         });
     } else {
       // add sign in logic here
+      signInWithEmailAndPassword(
+        auth,
+        emailRef.current.value,
+        passwordRef.current.value
+      )
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          navigate("/browse");
+          console.log(user);
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          seterrorMessage(errorCode + "-" + errorMessage);
+        });
     }
   };
   const toggleSignInForm = () => {
@@ -63,6 +110,7 @@ const Login = () => {
         </h1>
         {!isSignInFrom && (
           <input
+            ref={nameRef}
             type="text"
             placeholder="Full Name"
             className="p-4 my-4 w-full bg-gray-700"
@@ -100,3 +148,4 @@ const Login = () => {
 export default Login;
 
 // reactauthlearn
+// Test@1234
